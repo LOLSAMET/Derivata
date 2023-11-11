@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Derivata räknare</title>
+    <style>
+        body{font-family:'Arial',sans-serif;background-color:#f7f7f7;margin:0;padding:0;transition:background-color .3s ease}
+        header{background-color:#007bff;color:#fff;text-align:center;padding:20px 0}
+        .container{max-width:800px;margin:20px auto;padding:20px;background-color:#fff;box-shadow:0 0 10px rgba(0,0,0,.2);transition:background-color .3s ease;border-radius:8px;position:relative}
+        .container.dark-mode{background-color:#333;color:#fff}
+        .form-group{margin-bottom:20px}
+        .form-group label{display:block;font-weight:bold;margin-bottom:5px}
+        .form-group input[type="text"]{width:100%;padding:10px;border:1px solid #ccc;border-radius:4px;font-size:16px;background-color:#fff;transition:background-color .3s ease;margin-top:5px}
+        .form-group.dark-mode input[type="text"]{background-color:#444;color:#fff}
+        .form-group button{background-color:#007bff;color:#fff;border:none;border-radius:4px;padding:10px 20px;font-size:16px;cursor:pointer;margin-top:10px;transition:background-color .3s ease}
+        .form-group.dark-mode button{background-color:#444}
+        .result{font-size:20px;margin-top:20px;color:#333}
+        .result.dark-mode{color:#fff}
+        .error-message{color:#f00;margin-top:10px;display:none}
+        .dark-mode-text{margin-top:10px;display:flex;align-items:center;justify-content:flex-end}
+        .switch{display:inline-block;position:relative;width:60px;height:34px;margin-left:10px}
+        .slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background-color:#ccc;transition:.4s;border-radius:34px}
+        .slider:before{position:absolute;content:"";height:26px;width:26px;left:4px;bottom:4px;background-color:#fff;transition:.4s;border-radius:50%}
+        input:checked+.slider{background-color:#2196F3}
+        input:checked+.slider:before{transform:translateX(26px)}
+        #generateRandomPolynomialButton,#resetButton{position:absolute;color:#fff;border:none;border-radius:4px;padding:10px 20px;font-size:16px;cursor:pointer}
+        #generateRandomPolynomialButton{background-color:#28a745;margin-top:-40px}
+        #generateRandomPolynomialButton.dark-mode{background-color:#218838}
+        #resetButton{background-color:#dc3545;margin-top:-40px;margin-left:290px}
+        #resetButton.dark-mode{background-color:#c82333}
+        .lines{width: 50px; height: 50px; border: none; background-color: transparent; font-size: 80px; position: absolute; top: 0px; color: white; }
+        .Groups{width: 450px; height: 70px; background-color: transparent; border: none; font-size: 35px; font-family: arial; position: absolute; left: -170px; top: 30px; text-align: right;}
+        #lines {
+            width: 50px;
+            height: 50px;
+            border: none;
+            background-color: transparent;
+            font-size: 80px;
+            position: absolute;
+            top: 0px;
+            color: white;
+            z-index: 1;
+        }
+
+        #texture-container {
+            position: absolute;
+            width: 300px; /* Adjust to cover the entire screen */
+            height: 100%;
+            background-color: lightyellow;
+            top: 0px;
+            display: none;
+            z-index: 0; /* Ensure the texture is behind other elements */
+        }
+    </style>
+</head>
+<body>
+    <header><h1>Derivata räknare</h1></header>
+    <div class="container">
+        <div class="form-group">
+            <label for="textboxvalue">Ange polynom:</label>
+            <input type="text" id="textboxvalue" name="textboxvalue" placeholder="Ange polynom" oninput="updateResults()">
+        </div>
+        <div class="form-group">
+            <label for="textboxvalue2">Ange x värde:</label>
+            <input type="text" id="textboxvalue2" name="textboxvalue2" placeholder="Ange x värde" oninput="updateResults()">
+        </div>
+        <div class="result" id="result"></div>
+        <div id="errorMessage" class="error-message" style="display:none;"></div>
+        <div class="dark-mode-text">
+            <label class="switch">
+                <input type="checkbox" id="darkModeSwitch" onclick="toggleDarkMode()">
+                <span class="slider"></span>
+            </label>
+        </div>
+        <button id="generateRandomPolynomialButton" onclick="generateRandomPolynomial()">Generera Slumpmässig Polynom</button>
+        <button id="resetButton" onclick="resetForm()">Återställ</button>
+    </div>
+    <button class="lines" id="show-texture-button" onclick="showTexture(),toggleButton()">☰</button>
+    <div id="texture-container">
+        <a href="https://lolsamet.github.io/Grupp-Generator/" class="Groups">Grupp Generator</a>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.3.3/math.min.js"></script>
+    <script>
+        function showTexture() {
+            document.getElementById('texture-container').style.display = 'block';
+        }
+        function toggleButton() {
+            var button = document.getElementById('show-texture-button');
+            var textureContainer = document.getElementById('texture-container');
+            var currentLeft = parseInt(button.style.left || '0', 10);
+
+            if (currentLeft === 0) {
+                // Move the button to the left by 100px
+                button.style.left = '300px';
+                textureContainer.style.display = 'block';
+            } else {
+                // Move the button back to its original position
+                button.style.left = '0';
+                textureContainer.style.display = 'none';
+            }
+        }
+        function formatDerivative(derivative_str) {
+            derivative_str = derivative_str.replace(/\*/g, '').replace(/ /g, '');
+            derivative_str = derivative_str.replace(/(\d+)x/g, '$1x');
+            derivative_str = derivative_str.replace(/x(\d+)/g, 'x^$1');
+            derivative_str = derivative_str.replace(/ \+ - /g, ' - ');
+            derivative_str = derivative_str.replace(/- -/g, '+');
+            derivative_str = derivative_str.replace(/([+-])/g, ' $1 ');
+            derivative_str = derivative_str.replace(/^\+\s/g, '');
+            return derivative_str;
+        }
+        let previousValidResult = '';
+        function updateResults() {
+            const polynomialInput = document.getElementById("textboxvalue");
+            const xValueInput = document.getElementById("textboxvalue2");
+            const resultElement = document.getElementById("result");
+            const polynomial = polynomialInput.value.trim();
+            const xValue = xValueInput.value.trim();
+            let derivativeText = '';
+            let tangentEquation = '';
+            if (polynomial !== "") {
+                try {
+                    math.parse(polynomial);
+                    const derivativeExpression = math.derivative(polynomial, 'x');
+                    const derivative_str = formatDerivative(derivativeExpression.toString());
+                    derivativeText = `Derivata: ${formatDerivative(derivative_str)}`;
+                    if (xValue !== "") {
+                        const x = parseFloat(xValue);
+                        if (!isNaN(x)) {
+                            const expression_value = math.evaluate(polynomial, { x: x });
+                            const derivative_value = eval(derivativeExpression.toString().replace(/x/g, x));
+                            const tangent_coefficient = derivative_value;
+                            const constant = expression_value - tangent_coefficient * x;
+                            const formatted_derivative_value = derivative_value.toFixed(2).replace(/\.?0*$/, '');
+                            if (derivative_value !== 0) {
+                                const formatted_constant = constant.toFixed(2).replace(/\.?0*$/, '');
+                                if (constant > 0) {
+                                    tangentEquation = `Tangentens ekvation: y = ${formatted_derivative_value}x + ${formatted_constant}`;
+                                } else {
+                                    tangentEquation = `Tangentens ekvation: y = ${formatted_derivative_value}x - ${Math.abs(constant).toFixed(2).replace(/\.?0*$/, '')}`;
+                                }
+                            } else {
+                                tangentEquation = `Tangentens ekvation: y = ${constant.toFixed(2).replace(/\.?0*$/, '')}`;
+                            }
+                        }
+                    }
+                } catch (e) {
+                    derivativeText = lastValidDerivativeText;
+                    tangentEquation = lastValidTangentEquation;
+                }
+            }
+            if (xValue === "") {
+                if (derivativeText === '') {
+                    resultElement.innerHTML = previousValidResult;
+                } else {
+                    resultElement.innerHTML = derivativeText;
+                }
+            } else if (polynomial !== "") {
+                const x = parseFloat(xValue);
+                if (!isNaN(x)) {
+                    resultElement.innerHTML = `${derivativeText}<br>${tangentEquation}`;
+                    previousValidResult = resultElement.innerHTML;
+                    lastValidDerivativeText = derivativeText;
+                    lastValidTangentEquation = tangentEquation;
+                } else {
+                    resultElement.textContent = 'Ogiltig x värde';
+                }
+            } else {
+                resultElement.textContent = '';
+            }
+        }
+        function toggleDarkMode() {
+            const body = document.body;
+            body.classList.toggle('dark-mode');
+            const mainBackground = document.querySelector('body');
+            mainBackground.style.backgroundColor = body.classList.contains('dark-mode') ? '#000' : '#f7f7f7';
+            updateResults();
+        }
+        function generateRandomPolynomial() {
+            const degree = Math.floor(Math.random() * 5) + 1;
+            let polynomial = '';
+            for (let i = degree; i >= 0; i--) {
+                const coefficient = Math.floor(Math.random() * 21) - 10;
+                const exponent = Math.floor(Math.random() * 6);
+                if (coefficient === 0) {
+                    continue;
+                }
+                if (i === degree) {
+                    polynomial += `${coefficient}x^${exponent}`;
+                } else if (i === 1) {
+                    polynomial += ` ${coefficient > 0 ? '+' : '-'} ${Math.abs(coefficient)}x^${exponent}`;
+                } else if (i === 0) {
+                    polynomial += ` ${coefficient > 0 ? '+' : '-'} ${Math.abs(coefficient)}`;
+                } else {
+                    polynomial += ` ${coefficient > 0 ? '+' : '-'} ${Math.abs(coefficient)}x^${exponent}`;
+                }
+            }
+            polynomial = polynomial.trim().replace(/^\+\s/, '');
+            document.getElementById("textboxvalue").value = polynomial;
+            updateResults();
+        }
+        function resetForm() {
+            document.getElementById("textboxvalue").value = "";
+            document.getElementById("textboxvalue2").value = "";
+            document.getElementById("result").innerHTML = "";
+            previousValidResult = '';
+            document.getElementById("errorMessage").style.display = "none";
+            document.body.classList.remove('dark-mode');
+        }
+    </script>
+</body>
+</html>
